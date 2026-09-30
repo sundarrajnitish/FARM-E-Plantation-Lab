@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>FARM-E</title>
+<style>
+:root{--g:#367c2b;--gd:#1f4a17;--y:#ffde00;--ink:#16210f;--bg:#f4f1e6;--card:#fff;--mut:#5d6b52;--red:#c8321e}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font:15px/1.35 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink);user-select:none}
+header{background:var(--g);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:5px solid var(--y)}
+header b{font-size:20px;letter-spacing:.06em}
+#dot{width:12px;height:12px;border-radius:50%;background:#999;margin-left:auto;box-shadow:0 0 0 3px rgba(255,255,255,.25)}
+#dot.on{background:var(--y)}
+main{padding:12px;display:grid;gap:12px;max-width:520px;margin:auto}
+.card{background:var(--card);border-radius:14px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.row{display:flex;gap:8px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:8px}
+.k{background:var(--bg);border-radius:10px;padding:8px}
+.k i{display:block;font-style:normal;color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.k span{font-size:19px;font-weight:700;white-space:nowrap}
+#state{font-weight:800;font-size:18px;color:var(--gd)}
+#msg{color:var(--red);font-weight:600;min-height:1.2em}
+button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:14px 8px;flex:1;min-width:0;background:var(--gd);color:#fff;touch-action:manipulation}
+button.y{background:var(--y);color:var(--ink)}
+button.stop{background:var(--red);font-size:20px;letter-spacing:.1em}
+button:active{filter:brightness(1.2)}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.pad button{padding:22px 0;font-size:22px}
+.pad .blank{visibility:hidden}
+label{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #eee}
+input{width:90px;font:inherit;padding:6px;border:1px solid #ccc;border-radius:8px;text-align:right}
+h2{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut)}
+</style></head><body>
+<header><b>FARM-E</b><span id="mode">…</span><span id="dot"></span></header>
+<main>
+<section class="card">
+ <div class="row" style="justify-content:space-between;align-items:baseline"><span id="state">connecting</span><span id="msg"></span></div>
+ <div class="kpis" style="margin-top:8px">
+  <div class="k"><i>Hills</i><span id="hills">–</span></div>
+  <div class="k"><i>Row</i><span id="row">–</span></div>
+  <div class="k"><i>Water mL</i><span id="tank">–</span></div>
+  <div class="k"><i>Battery V</i><span id="batt">–</span></div>
+  <div class="k"><i>Ground mm</i><span id="ground">–</span></div>
+  <div class="k"><i>Air</i><span id="air">–</span></div>
+ </div>
+</section>
+<section class="card">
+ <button class="stop" data-c="stop">STOP</button>
+ <div class="row" style="margin-top:8px"><button class="y" data-c="auto">Plant</button><button data-c="pause">Pause</button><button data-c="manual">Manual</button></div>
+</section>
+<section class="card">
+ <h2>Drive (hold)</h2>
+ <div class="pad">
+  <span class="blank"></span><button data-d="F">&#9650;</button><span class="blank"></span>
+  <button data-d="L">&#9664;</button><button data-d="B">&#9660;</button><button data-d="R">&#9654;</button>
+ </div>
+ <div class="row" style="margin-top:8px"><button data-c="seed">Seed</button><button data-c="water" data-ms="1500">Water</button><button data-c="refill">Refilled</button></div>
+</section>
+<section class="card">
+ <h2>Planting pattern</h2>
+ <label>Hill spacing (mm)<input data-p="spacing" type="number" value="250"></label>
+ <label>Rows<input data-p="rows" type="number" value="3"></label>
+ <label>Row gap (mm)<input data-p="rowgap" type="number" value="300"></label>
+ <label>Water per hill (mL)<input data-p="water" type="number" value="20"></label>
+ <label>Seed gate open (ms)<input data-p="seedms" type="number" value="80"></label>
+ <button class="y" id="save" style="margin-top:10px;width:100%">Save to robot</button>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const FL={1:'edge reached',2:'tank low',4:'battery low',64:'sensor: no echo',256:'no ground ahead'};
+const FAULTS=['','no ground under the sensor','ultrasonic sensor fault','battery low'];
+async function get(u){try{const r=await fetch(u,{cache:'no-store'});return r.ok?r.json():null}catch(e){return null}}
+function cmd(c,extra){return get('/api/cmd?c='+c+(extra||''))}
+async function poll(){
+ const s=await get('/api/status');
+ $('dot').className=s&&s.link?'on':'';
+ if(s){
+  $('mode').textContent=s.mode;$('state').textContent=s.link?s.state:'robot not answering';
+  $('hills').textContent=s.hills;$('row').textContent=s.row+1;$('tank').textContent=s.tank_mL;
+  $('batt').textContent=(s.batt_dV/10).toFixed(1);$('ground').textContent=s.ground_mm<0?'—':s.ground_mm;
+  $('air').textContent=s.temp_C>-100?s.temp_C+'°C '+s.hum+'%':'—';
+  let m=FAULTS[s.fault]||'';for(const k in FL)if(s.flags&k)m=m||FL[k];$('msg').textContent=m;
+ }
+ setTimeout(poll,400);
+}
+document.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>cmd(b.dataset.c,b.dataset.ms?'&ms='+b.dataset.ms:''));
+let held=null,timer=0;
+function hold(d){held=d;send();clearInterval(timer);timer=setInterval(send,200)}
+function send(){if(held)cmd('drive','&d='+held+'&ms=450')}
+function release(){if(!held)return;held=null;clearInterval(timer);cmd('drive','&d=S')}
+document.querySelectorAll('[data-d]').forEach(b=>{
+ b.addEventListener('pointerdown',e=>{e.preventDefault();hold(b.dataset.d)});
+ ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,release));
+});
+$('save').onclick=async()=>{for(const i of document.querySelectorAll('[data-p]'))await cmd('set','&p='+i.dataset.p+'&v='+i.value)};
+poll();
+</script>
+</body></html>
