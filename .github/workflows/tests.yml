@@ -1,0 +1,63 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  cores:
+    name: controller cores (host, sanitizers)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make -C firmware/test
+
+  simulator:
+    name: simulator + pytest (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: sudo apt-get update && sudo apt-get install -y clang lld binaryen
+      - run: pip install -r requirements.txt
+      - run: make -C sim native wasm web
+      - run: pytest -q
+      - run: python -m farmelab --quick --no-figures
+
+  arduino:
+    name: compile ${{ matrix.sketch }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - sketch: firmware/FarmeDrive
+            fqbn: arduino:avr:uno
+            platforms: |
+              - name: arduino:avr
+            libraries: |
+              - name: Servo
+          - sketch: firmware/FarmeLink
+            fqbn: esp8266:esp8266:nodemcuv2
+            platforms: |
+              - name: esp8266:esp8266
+                source-url: https://arduino.esp8266.com/stable/package_esp8266com_index.json
+            libraries: |
+              - name: DHTStable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/compile-sketches@v1
+        with:
+          fqbn: ${{ matrix.fqbn }}
+          platforms: ${{ matrix.platforms }}
+          libraries: ${{ matrix.libraries }}
+          sketch-paths: |
+            - ${{ matrix.sketch }}
+          enable-warnings-report: true
