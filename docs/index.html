@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FARM-E Lab</title>
+<meta name="description" content="FARM-E, a tracked plantation robot: an Arduino UNO and a NodeMCU that seed and water a bed in rows. Firmware, a 3D model and a live browser simulation of the whole machine.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Big+Shoulders+Display:wght@700;800;900&family=JetBrains+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="css/site.css">
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+</head>
+<body>
+<header class="bar">
+  <div class="wrap">
+    <a class="brand" href="#machine"><i></i>FARM-E <span>Lab</span></a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#build">The machine</a><a href="#wiring">Signal path</a><a href="#trial">Field trial</a><a href="#phone">Phone</a>
+      <a href="#sonar">Sonar</a><a href="#wire">On the wire</a><a href="#results">Results</a><a href="#firmware">Firmware</a>
+    </nav>
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch colour theme">Theme</button>
+  </div>
+</header>
+
+<main>
+<!-- ============================================================ HERO -->
+<section class="hero" id="machine">
+  <div class="wrap">
+    <div>
+      <p class="eyebrow">Tracked plantation robot &middot; Arduino UNO + NodeMCU</p>
+      <h1>FARM-E<span>Seeds and waters a bed, row by row</span></h1>
+      <p class="lede">A small tracked machine that drives a bed in serpentine rows, stops every 25 cm, drops a pinch of seed, waters it and moves on, while a phone on its Wi-Fi watches and steers. Everything on this page runs the robot's real firmware in your browser.</p>
+      <div class="kpis" id="heroKpis">
+        <div class="kpi"><b data-k="spacing">25.6 <small>cm</small></b><span>between hills (set: 25 cm)</span></div>
+        <div class="kpi"><b data-k="seeds">4.1</b><span>seeds per hill, in a 2.4 cm cluster</span></div>
+        <div class="kpi"><b data-k="water">94%</b><span>of the water lands on a hill</span></div>
+        <div class="kpi"><b data-k="edge">1.9 <small>cm</small></b><span>past the edge before it stops</span></div>
+      </div>
+    </div>
+    <div class="viewer" id="heroViewer" aria-label="3D model of FARM-E. Drag to rotate.">
+      <div class="loading">Loading the 3D model</div>
+      <div class="viewer-ui">
+        <button class="chip-btn" id="cycleBtn" type="button">Play a planting cycle</button>
+        <button class="chip-btn" id="rotateBtn" type="button">Turntable</button>
+        <label class="slider-box" for="explode">Explode <input id="explode" type="range" min="0" max="1" step="0.01" value="0"></label>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ THE MACHINE -->
+<section class="band" id="build">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">The machine</p>
+      <h2>Tracks, a hopper, a tank and two boards</h2>
+      <p class="lede">A steel deck on rubber tracks carries an orange 3D-printed seed hopper with a servo flap, a small water tank and pump, and an ultrasonic sensor looking down at the soil just ahead of the tracks. The Arduino UNO drives; the NodeMCU runs the Wi-Fi and the phone page.</p>
+    </div>
+    <div class="two">
+      <figure class="photo" style="margin:0">
+        <img src="img/farme-prototype.jpg" alt="The FARM-E prototype on a tray of sand: rubber tracks, a red LiPo battery, an Arduino UNO, a breadboard with the NodeMCU, an orange seed hopper full of seed, a white water tank and a small solar panel." width="850" height="745" loading="lazy">
+        <figcaption>The prototype on its test tray of sand. The 3D model above is built from this photo.</figcaption>
+      </figure>
+      <div class="stack">
+        <div class="panel">
+          <h3>What it does</h3>
+          <p>Set on a bed, it learns how far away the soil is, then plants a hill, drives the set spacing, and plants again until the ground drops away ahead. There it backs off, turns, shifts one row gap and comes back down the next row. Temperature and humidity go to the phone, which can also drive it by hand.</p>
+        </div>
+        <div class="panel">
+          <h3>Parts and pins</h3>
+          <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Part</th><th>Job</th><th>Pins</th></tr></thead>
+            <tbody>
+              <tr><td>Arduino UNO</td><td>tracks, seed flap, pump, sonar</td><td class="mono">D2 D4 D6 D7, D9, D12, A4 A5</td></tr>
+              <tr><td>NodeMCU (ESP8266)</td><td>Wi-Fi access point, web, DHT11</td><td class="mono">D2 (DHT), D5 D6 (link)</td></tr>
+              <tr><td>Link between boards</td><td>software UART, 19200 baud</td><td class="mono">UNO A0/A1 &harr; D6/D5</td></tr>
+              <tr><td>2 &times; 12 V geared motors</td><td>200 rpm, one per track</td><td class="mono">through an H-bridge</td></tr>
+              <tr><td>SG90 servo</td><td>opens the hopper flap</td><td class="mono">D9</td></tr>
+              <tr><td>5 V pump, ~350 mL tank</td><td>waters each hill</td><td class="mono">D12</td></tr>
+              <tr><td>HC-SR04</td><td>is there ground ahead?</td><td class="mono">A4 trig, A5 echo</td></tr>
+              <tr><td>3S LiPo, 2200 mAh</td><td>power, sensed for speed</td><td class="mono">A3 via 10k/3.3k</td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ SIGNAL PATH -->
+<section class="band" id="wiring">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">How a tap becomes motion</p>
+      <h2>Phone &rarr; Wi-Fi &rarr; NodeMCU &rarr; UART &rarr; UNO &rarr; tracks</h2>
+      <p class="lede">Pick a stage to see what travels over it and how each hop keeps a command from getting lost.</p>
+    </div>
+    <div class="panel">
+      <div class="tbl-wrap"><svg id="flowSvg" viewBox="0 0 1100 170" role="img" aria-label="Signal path from phone to motors" style="min-width:760px;width:100%;height:auto;display:block"></svg></div>
+      <div class="verdict" style="margin-top:14px"><h4 id="flowTitle">UART</h4><p id="flowText">Select a stage above.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ FIELD TRIAL -->
+<section class="band" id="trial">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Live co-simulation</p>
+      <h2>Field trial</h2>
+      <p class="lede">The robot below is a simulated UNO and NodeMCU running the actual firmware, compiled to WebAssembly and joined by a software UART, on a tracked chassis with a battery, a seed hopper, a pump and a sonar. Change the bed or the settings and plant again.</p>
+    </div>
+    <div class="trial">
+      <div class="controls">
+        <label class="note" for="preset">Bed</label>
+        <select id="preset">
+          <option value="table">Table-top, 75 cm drop</option>
+          <option value="raised">Raised bed, 12 cm drop</option>
+          <option value="step">Shallow step, 6 cm</option>
+          <option value="unplugged">Sonar echo wire open</option>
+          <option value="tired">Tired battery (11.2 V)</option>
+        </select>
+        <label class="note" for="setSpacing">Spacing</label>
+        <select id="setSpacing"><option value="150">15 cm</option><option value="200">20 cm</option><option value="250" selected>25 cm</option><option value="350">35 cm</option></select>
+        <label class="note" for="setRows">Rows</label>
+        <select id="setRows"><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option></select>
+        <label class="note" for="setWater">Water</label>
+        <select id="setWater"><option value="0">none</option><option value="10">10 mL</option><option value="20" selected>20 mL</option></select>
+        <button class="btn primary" id="restart" type="button">Plant</button>
+        <button class="btn" id="pause" type="button">Pause</button>
+        <div class="seg" id="speed" role="group" aria-label="Simulation speed">
+          <button type="button" data-s="1">1&times;</button><button type="button" data-s="2">2&times;</button><button type="button" data-s="4" class="on">4&times;</button><button type="button" data-s="8">8&times;</button>
+        </div>
+        <div class="seg" id="cam" role="group" aria-label="Camera">
+          <button type="button" data-c="overview" class="on">Whole bed</button><button type="button" data-c="follow">Follow</button>
+        </div>
+      </div>
+      <div class="stage" id="stage">
+        <div class="banner"><span id="clock">t = 0.0 s</span><span id="presetNote">Powered up at 0 s, "Plant" pressed at 2 s.</span></div>
+      </div>
+      <div class="panel rig crop" id="rig0">
+        <div class="rig-head"><h3>Robot status</h3><span class="state-pill" data-f="state">&ndash;</span></div>
+        <div class="stats">
+          <div class="stat"><i>Hills</i><b data-f="hills">0</b></div>
+          <div class="stat"><i>Row</i><b data-f="row">&ndash;</b></div>
+          <div class="stat"><i>Seeds / hill</i><b data-f="sph">&ndash;</b></div>
+          <div class="stat"><i>Spacing</i><b data-f="spacing">&ndash;</b></div>
+          <div class="stat"><i>Water on hills</i><b data-f="wf">&ndash;</b></div>
+          <div class="stat"><i>Tank</i><b data-f="tank">350</b></div>
+          <div class="stat"><i>Ground</i><b data-f="ground">&ndash;</b></div>
+          <div class="stat"><i>Battery</i><b data-f="batt">&ndash;</b></div>
+        </div>
+        <div class="console-tabs"><button type="button" class="on" data-b="0">UNO serial</button><button type="button" data-b="1">NodeMCU serial</button></div>
+        <div class="console" aria-live="off"></div>
+      </div>
+      <p class="note">The sonar sits 13 cm ahead of the robot's centre. Heading drifts a few degrees per row because the tracks slip a little differently; the robot has no gyro, so the sonar watching the bed's sides is what keeps it on. Model parameters (track speed, slip, pump flow, seed flow) are plausible for the prototype.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ PHONE -->
+<section class="band" id="phone">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Drive it yourself</p>
+      <h2>The phone in your hand</h2>
+      <p class="lede">Join the robot's Wi-Fi and open 192.168.4.1: this is the page the NodeMCU serves, running here against a simulated robot. Hold an arrow to drive, press Plant to start a run, and watch the requests on the right.</p>
+    </div>
+    <div class="phones single">
+      <div class="phone-col">
+        <div class="device"><div class="screen"><iframe id="phoneFrame" title="The NodeMCU's control page" sandbox="allow-scripts"></iframe></div></div>
+        <div class="stack">
+          <div class="row" style="justify-content:space-between"><span class="tag crop">192.168.4.1</span><button class="btn" id="resetBot" type="button">Reset robot</button></div>
+          <canvas class="minimap" id="mapBot" width="600" height="300" aria-label="Top view of the robot's bed"></canvas>
+          <div class="trace" id="traceBot"><div>Hold the arrows to drive. Try "Plant".</div></div>
+          <div class="panel">
+            <h3>The API behind the page</h3>
+            <div class="tbl-wrap"><table>
+              <thead><tr><th>Request</th><th>Does</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">/api/status</td><td>mode, state, hills, row, tank, ground, battery, air (JSON)</td></tr>
+                <tr><td class="mono">/api/cmd?c=auto | pause | stop | manual</td><td>start, pause, stop a run; switch to manual</td></tr>
+                <tr><td class="mono">/api/cmd?c=drive&amp;d=F&amp;ms=450</td><td>drive for 450 ms; repeated while an arrow is held</td></tr>
+                <tr><td class="mono">/api/cmd?c=seed | water&amp;ms=</td><td>one hill of seed; a timed squirt</td></tr>
+                <tr><td class="mono">/api/cmd?c=set&amp;p=spacing&amp;v=250</td><td>settings, stored in the UNO's EEPROM</td></tr>
+              </tbody>
+            </table></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ SONAR -->
+<section class="band" id="sonar">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Sensor lab</p>
+      <h2>Is there ground under the sonar?</h2>
+      <p class="lede">The HC-SR04 looks down just ahead of the tracks. Slide the robot toward the end of the bed and see how the firmware reads the echo.</p>
+    </div>
+    <div class="two">
+      <div class="panel">
+        <canvas class="lab-canvas" id="sonarCanvas" width="760" height="380" aria-label="Side view of the robot near the end of the bed, with the sonar beam"></canvas>
+        <div class="readouts">
+          <div class="stat"><i>Echo pulse</i><b id="sEcho">&ndash;</b></div>
+          <div class="stat"><i>Distance</i><b id="sDist">&ndash;</b></div>
+          <div class="stat"><i>Learned ground</i><b id="sBase">55 mm</b></div>
+        </div>
+        <div class="verdict crop" style="margin-top:12px"><h4>Firmware decision</h4><p class="say" id="vDec">&ndash;</p><p id="vDecB"></p></div>
+      </div>
+      <div class="panel stack">
+        <div class="ctl"><label for="sPos"><span>Sonar position relative to the end of the bed</span><span id="sPosV">-20 cm</span></label><input id="sPos" type="range" min="-40" max="20" step="1" value="-20"></div>
+        <div class="ctl"><label for="sTemp"><span>Air temperature</span><span id="sTempV">28 &deg;C</span></label><input id="sTemp" type="range" min="0" max="45" step="1" value="28"></div>
+        <div class="ctl"><label>Bed</label>
+          <div class="seg" id="sBed"><button type="button" data-d="0.75" class="on">Table-top, 75 cm</button><button type="button" data-d="0.12">Raised, 12 cm</button><button type="button" data-d="0.06">Step, 6 cm</button></div></div>
+        <div class="ctl"><label>Wiring</label>
+          <div class="seg" id="sWire"><button type="button" data-w="ok" class="on">Connected</button><button type="button" data-w="open">Echo wire open</button><button type="button" data-w="absorb">Echo absorbed</button></div></div>
+        <p class="note">Distance is <code>echo_us &times; c / 2</code>, with the speed of sound <code>c = 331.3 + 0.606 T</code> m/s and T from the NodeMCU's DHT11. While standing still the UNO takes seven pings, and if they agree within 15 mm their median becomes the ground distance.</p>
+        <p class="note">Moving forward, two readings more than 40 mm below that ground, or three missing echoes in a row, or no ping for 150 ms, mean "no ground ahead": the tracks brake at once. <code>pulseIn()</code> is capped at 6 ms (about 1 m), so a lost echo never turns into a number.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ ON THE WIRE -->
+<section class="band" id="wire">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">UART lab</p>
+      <h2>On the wire between the boards</h2>
+      <p class="lede">What crosses the two-wire link, bit by bit, and how the boards make sure every command arrives exactly once.</p>
+    </div>
+    <div class="panel stack">
+      <div class="row">
+        <div class="seg" id="uMsg">
+          <button type="button" data-m="cmd" class="on">Command: drive left</button>
+          <button type="button" data-m="tel">Telemetry reply</button>
+          <button type="button" data-m="hb">Heartbeat</button>
+        </div>
+        <span class="note" id="uInfo"></span>
+      </div>
+      <div class="tbl-wrap"><canvas class="lab-canvas" id="uartCanvas" width="1100" height="200" style="min-width:720px" aria-label="Logic-level waveform of the serial line"></canvas></div>
+      <div class="bytes" id="uBytes"></div>
+    </div>
+    <div class="panel stack" style="margin-top:18px">
+      <h3>Stop-and-wait delivery</h3>
+      <p>The NodeMCU sends one command at a time with a sequence number. The UNO acts on it and puts the number in its next telemetry line, about 20 ms later. No echo within 150 ms and the same frame goes out again; a repeat the UNO has already seen is acknowledged but not acted on twice. Raise the noise and watch.</p>
+      <div class="row">
+        <div class="ctl" style="min-width:260px;flex:1"><label for="noise"><span>Corrupted bytes on the line</span><span id="noiseV">2 %</span></label><input id="noise" type="range" min="0" max="15" step="0.5" value="2"></div>
+        <button class="btn" id="resend" type="button">Send 12 commands</button>
+      </div>
+      <div class="tbl-wrap"><canvas class="lab-canvas" id="pfCanvas" width="1100" height="230" style="min-width:720px" aria-label="Timeline of commands, retries and acknowledgements"></canvas></div>
+      <p class="note" id="pfNote"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ RESULTS -->
+<section class="band" id="results">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Measured in simulation</p>
+      <h2>Results</h2>
+      <p class="lede">From <code>python -m farmelab</code>: five full planting runs on a 2.4 &times; 1.2 m table-top bed with default settings, plus targeted tests. Each figure is pinned by a test in <code>tests/test_firmware.py</code>.</p>
+    </div>
+    <div class="defects" id="defects"></div>
+    <div class="two" style="margin-top:22px">
+      <figure class="photo" style="margin:0"><img class="fig" src="img/field.png" alt="Top view of one planting run: three serpentine rows of tidy hills, each with a small wet patch." loading="lazy"><figcaption>One run from above: path, seeds (dots), hills (circles), water (blue).</figcaption></figure>
+      <figure class="photo" style="margin:0"><img class="fig" src="img/distributions.png" alt="Histograms of hill spacing, centred near 25 cm, and of seeds per hill, mostly 2 to 6." loading="lazy"><figcaption>Hill spacing and seeds per hill over five runs.</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ FIRMWARE -->
+<section class="band" id="firmware">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Inside</p>
+      <h2>Firmware</h2>
+      <p class="lede">Two sketches: FarmeDrive on the UNO and FarmeLink on the NodeMCU. All decisions live in plain C++ cores that are unit-tested on a PC and run unmodified in the simulator above.</p>
+    </div>
+    <div class="panel sm">
+      <div class="row" style="justify-content:space-between"><h3>Planting state machine</h3><span class="note">Lit: the robot in the field trial, right now.</span></div>
+      <div class="tbl-wrap"><svg id="smSvg" viewBox="0 0 1100 350" role="img" aria-label="Planting state machine" style="min-width:760px"></svg></div>
+    </div>
+    <div class="two" style="margin-top:22px">
+      <div class="panel">
+        <h3>The link protocol</h3>
+        <p>One line per frame, readable in any serial monitor, checked with CRC-8. One command in flight at a time; the UNO echoes its sequence number in the next telemetry frame, or the NodeMCU sends it again. Repeats are recognised and ignored.</p>
+        <div class="tbl-wrap"><table style="margin-top:10px">
+          <thead><tr><th>Frame</th><th>Direction</th><th>Fields</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">$C,17,4,3,450*C4</td><td>NodeMCU &rarr; UNO</td><td>command: seq, code, a, b</td></tr>
+            <tr><td class="mono">$H,280,62*..</td><td>NodeMCU &rarr; UNO</td><td>heartbeat: air &deg;C &times;10, %RH</td></tr>
+            <tr><td class="mono">$T,17,3,2,24,55,..*..</td><td>UNO &rarr; NodeMCU</td><td>telemetry: ack, state, mode, flags, ground mm, hills, row, tank mL, battery dV, fault</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="panel">
+        <h3>Design</h3>
+        <ul style="margin:0;padding-left:18px;display:grid;gap:6px">
+          <li>Idle at power-up; plants only when asked.</li>
+          <li>Stop, seed, water, move: hills at a set spacing, in serpentine rows.</li>
+          <li>Measured water doses; the firmware tracks the tank and says when it is low.</li>
+          <li>Edge detection against a learned ground distance, every 30 ms while moving, in manual mode too.</li>
+          <li>Drive commands carry a hold time: if the phone goes quiet, the robot stops within half a second.</li>
+          <li>Distances stretch with battery voltage; a low battery pauses the run.</li>
+          <li>The web server never blocks; the Wi-Fi password lives in an untracked <code>secrets.h</code>.</li>
+          <li>Settings in EEPROM with a CRC; a 1 s watchdog on the UNO.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="two" style="margin-top:22px">
+      <div class="panel">
+        <h3>Flash it</h3>
+        <ol class="steps">
+          <li><span>UNO: open <code>firmware/FarmeDrive</code> in the Arduino IDE, board Arduino UNO (Servo, SoftwareSerial and EEPROM are built in). 15.4 KB flash, 0.9 KB RAM.</span></li>
+          <li><span>NodeMCU: install the ESP8266 core and the <em>DHTStable</em> library, copy <code>secrets.example.h</code> to <code>secrets.h</code>, set a password, open <code>firmware/FarmeLink</code>, board NodeMCU 1.0.</span></li>
+          <li><span>Wire the link: NodeMCU D6 &rarr; UNO A0; UNO A1 &rarr; 1 k&Omega; &rarr; NodeMCU D5 &rarr; 2 k&Omega; &rarr; GND. Battery through 10 k&Omega; / 3.3 k&Omega; to A3.</span></li>
+          <li><span>Join the <em>FARM-E</em> Wi-Fi and open <code>http://192.168.4.1</code>.</span></li>
+        </ol>
+      </div>
+      <div class="panel">
+        <h3>Settings</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Setting</th><th>Default</th><th>Range</th></tr></thead>
+          <tbody>
+            <tr><td>Hill spacing</td><td>250 mm</td><td>100&ndash;800</td></tr>
+            <tr><td>Rows per run</td><td>3</td><td>1&ndash;8</td></tr>
+            <tr><td>Row gap</td><td>300 mm</td><td>150&ndash;600</td></tr>
+            <tr><td>Water per hill</td><td>20 mL</td><td>0&ndash;60</td></tr>
+            <tr><td>Seed flap open</td><td>80 ms</td><td>40&ndash;600</td></tr>
+            <tr><td>Ground speed</td><td>240 mm/s at 11.7 V</td><td>60&ndash;600</td></tr>
+            <tr><td>90&deg; turn</td><td>910 ms</td><td>200&ndash;3000</td></tr>
+            <tr><td>Edge threshold</td><td>40 mm</td><td>15&ndash;200</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><b>FARM-E Lab</b> by Nitish Sundarraj. Source, tests and simulator: <a href="https://github.com/sundarrajnitish/FARM-E-Plantation-Lab">github.com/sundarrajnitish/FARM-E-Plantation-Lab</a>. MIT licence.</p>
+    <p>The 3D model is generated from primitives by <code>tools/make_model.py</code>; three.js (MIT) renders it. Colours are a nod to farm machinery; no third-party names or marks are used.</p>
+  </div>
+</footer>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
