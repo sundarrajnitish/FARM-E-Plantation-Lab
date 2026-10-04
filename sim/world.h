@@ -8,8 +8,9 @@
 //
 // The numbers are plausible for the prototype (3S 2200 mAh LiPo,
 // 12 V 200 rpm geared motors on rubber tracks, SG90 gate servo, 5 V mini
-// pump, HC-SR04) but they are assumptions, not measurements: read results
-// for how the firmware behaves, not as exact figures for the hardware.
+// pump, HC-SR04) but they are assumptions, not measurements. Both firmwares
+// run against the same world, so comparisons between them are fair even
+// where the absolute numbers are uncertain.
 #pragma once
 #include <stdint.h>
 #include "hmath.h"
